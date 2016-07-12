@@ -19,9 +19,12 @@ final AutoRefreshCache<Long> autoRefreshCache = new AutoRefreshCache<>(10, new S
 autoRefreshCache.get(); // => 1L
 autoRefreshCache.get(); // => 1L
 
-// 10 seconds later...
+// 10 seconds spent...
 
 autoRefreshCache.get(); // => 2L
+
+// Get refreshed object even if it dosen't spend 10 seconds
+autoRefreshCache.forceGet(); // => 3L
 ```
 
 Description
