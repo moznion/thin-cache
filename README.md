@@ -16,12 +16,12 @@ final AutoRefreshCache<Long> autoRefreshCache = new AutoRefreshCache<>(10, new S
     }
 });
 
-longAutoRefreshCache.get(); // => 1L
-longAutoRefreshCache.get(); // => 1L
+autoRefreshCache.get(); // => 1L
+autoRefreshCache.get(); // => 1L
 
 // 10 seconds later...
 
-longAutoRefreshCache.get(); // => 2L
+autoRefreshCache.get(); // => 2L
 ```
 
 Description
