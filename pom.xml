@@ -3,7 +3,7 @@
 
   <groupId>net.moznion</groupId>
   <artifactId>auto-refresh-cache</artifactId>
-  <version>0.0.2</version>
+  <version>0.0.3-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>auto-refresh-cache</name>
@@ -164,7 +164,7 @@
     <url>https://github.com/moznion/auto-refresh-cache</url>
     <connection>scm:git:git@github.com:moznion/auto-refresh-cache.git</connection>
     <developerConnection>scm:git:git@github.com:moznion/auto-refresh-cache.git</developerConnection>
-    <tag>auto-refresh-cache-0.0.2</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <licenses>
