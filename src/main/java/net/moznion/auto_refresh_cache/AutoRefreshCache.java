@@ -40,11 +40,23 @@ public class AutoRefreshCache<T> {
         return get(getCurrentEpoch());
     }
 
+    /**
+     * Get refreshed object.
+     * <p>
+     * It returns always refreshed object and extends lifetime.
+     *
+     * @return Refreshed object.
+     */
+    public T forceGet() {
+        cached = supplier.get();
+        expiresAt = getExpiresAt(discardIntervalSec);
+        return cached;
+    }
+
     T get(final long currentEpoch) {
         if (expiresAt < currentEpoch) {
             // Expired. Fill new instance
-            cached = supplier.get();
-            expiresAt = getExpiresAt(discardIntervalSec);
+            return forceGet();
         }
         return cached;
     }
