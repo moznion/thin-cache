@@ -8,11 +8,12 @@ import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class AutoRefreshCacheTest {
     @Test
-    public void testGet() {
-        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(1000, new Supplier<Long>() {
+    public void testGet() throws Exception {
+        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(1000, false, new Supplier<Long>() {
             private long i = 0;
 
             @Override
@@ -26,8 +27,8 @@ public class AutoRefreshCacheTest {
     }
 
     @Test
-    public void testForceGet() {
-        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(1000, new Supplier<Long>() {
+    public void testForceGet() throws Exception {
+        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(1000, false, new Supplier<Long>() {
             private long i = 0;
 
             @Override
@@ -42,7 +43,7 @@ public class AutoRefreshCacheTest {
 
     @Test
     public void testForAtomicity() throws Exception {
-        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(10000, new Supplier<Long>() {
+        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(10000, false, new Supplier<Long>() {
             private long i = 0;
 
             @Override
@@ -70,5 +71,35 @@ public class AutoRefreshCacheTest {
         future1.get();
         future2.get();
         future3.get();
+    }
+
+    @Test
+    public void testForExceptionalHandling() throws Exception {
+        final AutoRefreshCache<Long> notSuppressException = new AutoRefreshCache<>(10000, false, new Supplier<Long>() {
+            private long i = 0;
+
+            @Override
+            public Long get() {
+                if (i > 0) {
+                    throw new RuntimeException("Exception!");
+                }
+                return ++i;
+            }
+        });
+        assertThatThrownBy(notSuppressException::forceGet).isInstanceOf(RuntimeException.class);
+
+        final AutoRefreshCache<Long> suppressException = new AutoRefreshCache<>(10000, true, new Supplier<Long>() {
+            private long i = 0;
+
+            @Override
+            public Long get() {
+                if (i > 0) {
+                    throw new RuntimeException("Exception!");
+                }
+                return ++i;
+            }
+        });
+        assertThat(suppressException.forceGet()).isEqualTo(1);
+        assertThat(suppressException.forceGet()).isEqualTo(1);
     }
 }

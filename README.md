@@ -7,7 +7,7 @@ Synopsis
 ---
 
 ```java
-final AutoRefreshCache<Long> autoRefreshCache = new AutoRefreshCache<>(10, new Supplier<Long>() {
+final AutoRefreshCache<Long> autoRefreshCache = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
     private long i = 0;
 
     @Override
