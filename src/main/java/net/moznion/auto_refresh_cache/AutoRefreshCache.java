@@ -1,5 +1,7 @@
 package net.moznion.auto_refresh_cache;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.time.Instant;
 import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
@@ -12,6 +14,7 @@ import java.util.function.Supplier;
  *
  * @param <T> Type of cache object.
  */
+@Slf4j
 public class AutoRefreshCache<T> {
     private final long discardIntervalSec;
     private final Supplier<T> supplier;
@@ -80,6 +83,7 @@ public class AutoRefreshCache<T> {
             if (!useBeforeCacheOnException) {
                 throw e;
             }
+            log.warn("Failed to refresh cache so use old cache", e);
         }
         expiresAt = getExpiresAt(discardIntervalSec);
 
