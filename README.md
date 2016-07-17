@@ -30,9 +30,43 @@ autoRefreshCache.forceGet(); // => 3L
 Description
 --
 
+### Overview
+
 Cached object that can be refreshed automatically when cache is expired.
 
 It holds the same object until cache is expired, and it refreshes the object by given supplier automatically when cache is expired.
+
+### Exceptional Handling
+
+You can control exceptional handling through the constructor argument.
+
+If this boolean value is true, it returns already cached object and suppresses exception when supplier (generator of cache object) raises some exception. Otherwise, it throws exception as it is.
+
+Example:
+
+```java
+final AutoRefreshCache<Long> notSuppressExceptionCache = new AutoRefreshCache<>(10000, false, new Supplier<Long>() {
+    @Override
+    public Long get() {
+        // do something
+        throw new RuntimeException("Exception!");
+    }
+});
+notSuppressExceptionCache.get(); // throws exception
+
+final AutoRefreshCache<Long> suppressExceptionCache = new AutoRefreshCache<>(10000, true, new Supplier<Long>() {
+    @Override
+    public Long get() {
+        // do something
+        throw new RuntimeException("Exception!");
+    }
+});
+suppressExceptionCache.get(); // returns old (previous) cache and suppresses exception
+```
+
+### More information
+
+[![javadoc.io](https://javadocio-badges.herokuapp.com/net.moznion/auto-refresh-cache/badge.svg)](https://javadocio-badges.herokuapp.com/net.moznion/auto-refresh-cache)
 
 Requires
 --
