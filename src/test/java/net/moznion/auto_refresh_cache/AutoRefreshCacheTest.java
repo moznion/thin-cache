@@ -102,4 +102,19 @@ public class AutoRefreshCacheTest {
         assertThat(suppressException.forceGet()).isEqualTo(1);
         assertThat(suppressException.forceGet()).isEqualTo(1);
     }
+
+    @Test
+    public void testWithInitialCachedObject() throws Exception {
+        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(100L, 10000, false, new Supplier<Long>() {
+            private long i = 0;
+
+            @Override
+            public Long get() {
+                return ++i;
+            }
+        });
+
+        assertThat(longAutoRefreshCache.get()).isEqualTo(100L);
+        assertThat(longAutoRefreshCache.forceGet()).isEqualTo(1L);
+    }
 }

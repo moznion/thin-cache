@@ -29,10 +29,22 @@ public class AutoRefreshCache<T> {
      * @param useBeforeCacheOnException If true, it returns already cached object and suppresses exception when supplier raises some exception. Otherwise, it throws exception as it is.
      */
     public AutoRefreshCache(final long discardIntervalSec, final boolean useBeforeCacheOnException, final Supplier<T> supplier) {
+        this(supplier.get(), discardIntervalSec, useBeforeCacheOnException, supplier);
+    }
+
+    /**
+     * A constructor with initial cached object.
+     *
+     * @param init the initial cached object.
+     * @param discardIntervalSec Lifetime of cache object (seconds). If this interval is over, cache object will be refreshed by given supplier.
+     * @param supplier Supplier of cache object. This supplier is used when making a cache object and refreshing one.
+     * @param useBeforeCacheOnException If true, it returns already cached object and suppresses exception when supplier raises some exception. Otherwise, it throws exception as it is.
+     */
+    public AutoRefreshCache(final T init, final long discardIntervalSec, final boolean useBeforeCacheOnException, final Supplier<T> supplier) {
         this.discardIntervalSec = discardIntervalSec;
         this.supplier = supplier;
         this.useBeforeCacheOnException = useBeforeCacheOnException;
-        cached = supplier.get();
+        cached = init;
         expiresAt = getExpiresAt(discardIntervalSec);
         semaphore = new Semaphore(1);
     }
