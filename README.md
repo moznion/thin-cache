@@ -64,6 +64,24 @@ final AutoRefreshCache<Long> suppressExceptionCache = new AutoRefreshCache<>(100
 suppressExceptionCache.get(); // returns old (previous) cache and suppresses exception
 ```
 
+### Asynchronously support
+
+This library has two asynchronously methods;
+
+- `Asyncronously#getWithRefreshScheduling()`
+- `Asyncronously#forceGetWithRefreshScheduling()`
+
+These methods delegate and schedules a task to refresh cache to the other thread.  
+They returns always already cached object; refreshed cache object will be available from the next calling.
+
+#### `Asyncronously#getWithRefreshScheduling()`
+
+This method retrieves __always__ already cached object. And schedules a task to refresh cache when cache is expired.
+
+#### `Asyncronously#forceGetWithRefreshScheduling()`
+
+This method retrieves __always__ already cached object. And __always__ schedules a task to refresh cache.
+
 ### More information
 
 [![javadoc.io](https://javadocio-badges.herokuapp.com/net.moznion/auto-refresh-cache/badge.svg)](https://javadocio-badges.herokuapp.com/net.moznion/auto-refresh-cache)
