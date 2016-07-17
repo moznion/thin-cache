@@ -1,6 +1,7 @@
 package net.moznion.auto_refresh_cache;
 
 import java.time.Instant;
+import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
 
 /**
@@ -14,9 +15,10 @@ import java.util.function.Supplier;
 public class AutoRefreshCache<T> {
     private final long discardIntervalSec;
     private final Supplier<T> supplier;
+    private final Semaphore semaphore;
 
-    private long expiresAt;
-    private T cached;
+    private volatile long expiresAt;
+    private volatile T cached;
 
     /**
      * A constructor.
@@ -29,6 +31,7 @@ public class AutoRefreshCache<T> {
         this.supplier = supplier;
         cached = supplier.get();
         expiresAt = getExpiresAt(discardIntervalSec);
+        semaphore = new Semaphore(1);
     }
 
     /**
@@ -44,12 +47,23 @@ public class AutoRefreshCache<T> {
      * Get refreshed object.
      * <p>
      * It returns always refreshed object and extends lifetime.
+     * But if other thread is attempting to refresh, this method returns the cached object that is not refreshed.
+     * <p>
+     * This method runs as exclusive between threads to ensure atomicity of updating cached object and lifetime.
      *
      * @return Refreshed object.
      */
     public T forceGet() {
+        if (!semaphore.tryAcquire()) {
+            // If attempt to get cached object while refreshing that by other thread, current thread returns old cache.
+            return cached;
+        }
+
         cached = supplier.get();
         expiresAt = getExpiresAt(discardIntervalSec);
+
+        semaphore.release();
+
         return cached;
     }
 
