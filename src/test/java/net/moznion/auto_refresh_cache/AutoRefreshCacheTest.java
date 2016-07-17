@@ -23,7 +23,7 @@ public class AutoRefreshCacheTest {
         });
         assertThat(longAutoRefreshCache.get()).isEqualTo(1L);
         assertThat(longAutoRefreshCache.get()).isEqualTo(1L);
-        assertThat(longAutoRefreshCache.get(Integer.MAX_VALUE)).isEqualTo(2L);
+        assertThat(longAutoRefreshCache.get(Integer.MAX_VALUE, false)).isEqualTo(2L);
     }
 
     @Test
@@ -38,7 +38,7 @@ public class AutoRefreshCacheTest {
         });
         assertThat(longAutoRefreshCache.get()).isEqualTo(1L);
         assertThat(longAutoRefreshCache.forceGet()).isEqualTo(2L);
-        assertThat(longAutoRefreshCache.get(Integer.MAX_VALUE)).isEqualTo(3L);
+        assertThat(longAutoRefreshCache.get(Integer.MAX_VALUE, false)).isEqualTo(3L);
     }
 
     @Test
@@ -57,7 +57,7 @@ public class AutoRefreshCacheTest {
             }
         });
 
-        final ExecutorService pool = Executors.newFixedThreadPool(2);
+        final ExecutorService pool = Executors.newFixedThreadPool(3);
         final Future<?> future1 = pool.submit(() -> assertThat(longAutoRefreshCache.forceGet()).isEqualTo(2L));
         final Future<?> future2 = pool.submit(() -> assertThat(longAutoRefreshCache.forceGet()).isEqualTo(1L));
         final Future<?> future3 = pool.submit(() -> {
@@ -116,5 +116,25 @@ public class AutoRefreshCacheTest {
 
         assertThat(longAutoRefreshCache.get()).isEqualTo(100L);
         assertThat(longAutoRefreshCache.forceGet()).isEqualTo(1L);
+    }
+
+    @Test
+    public void testGetWithRefreshScheduling() throws Exception {
+        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(10000, false, new Supplier<Long>() {
+            private long i = 0;
+
+            @Override
+            public Long get() {
+                return ++i;
+            }
+        });
+
+        assertThat(longAutoRefreshCache.get(Integer.MAX_VALUE, true)).isEqualTo(1L);
+        Thread.sleep(100);
+        assertThat(longAutoRefreshCache.getWithRefreshScheduling()).isEqualTo(2L);
+        Thread.sleep(100);
+        assertThat(longAutoRefreshCache.forceGetWithRefreshScheduling()).isEqualTo(2L);
+        Thread.sleep(100);
+        assertThat(longAutoRefreshCache.getWithRefreshScheduling()).isEqualTo(3L);
     }
 }
