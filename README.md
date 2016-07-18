@@ -6,6 +6,9 @@ Cached object that can be refreshed automatically when cache is expired.
 Synopsis
 ---
 
+Make a cache instance with no initial value.
+In this case, initializing of a cache value is postpone until the first call of method of getting.
+
 ```java
 final AutoRefreshCache<Long> autoRefreshCache = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
     private long i = 0;
@@ -16,15 +19,38 @@ final AutoRefreshCache<Long> autoRefreshCache = new AutoRefreshCache<>(10, false
     }
 });
 
-autoRefreshCache.get(); // => 1L
-autoRefreshCache.get(); // => 1L
+autoRefreshCache.get(); // => 1L (initialize cache)
+autoRefreshCache.get(); // => 1L (hit cache)
 
 // 10 seconds spent...
 
-autoRefreshCache.get(); // => 2L
+autoRefreshCache.get(); // => 2L (expired, refresh cache)
 
 // Get refreshed object even if it dosen't spend 10 seconds
-autoRefreshCache.forceGet(); // => 3L
+autoRefreshCache.forceGet(); // => 3L (force refresh)
+```
+
+Or you can make a cache instance with initial cache value;
+
+```java
+final AutoRefreshCache<Long> autoRefreshCache = new AutoRefreshCache<>(0L, 10, false, new Supplier<Long>() {
+    private long i = 0;
+
+    @Override
+    public Long get() {
+        return ++i;
+    }
+});
+
+autoRefreshCache.get(); // => 0L (hit cache, initial value)
+autoRefreshCache.get(); // => 0L (hit cache)
+
+// 10 seconds spent...
+
+autoRefreshCache.get(); // => 1L (expired, refresh cache)
+
+// Get refreshed object even if it dosen't spend 10 seconds
+autoRefreshCache.forceGet(); // => 2L (force refresh)
 ```
 
 Description
@@ -64,6 +90,10 @@ final AutoRefreshCache<Long> suppressExceptionCache = new AutoRefreshCache<>(100
 suppressExceptionCache.get(); // returns old (previous) cache and suppresses exception
 ```
 
+#### Exception case
+
+If cache value hasn't been initialized, it throws exception as it even if the second argument of constructor is true.
+
 ### Asynchronously support
 
 This library has two asynchronously methods;
@@ -81,6 +111,10 @@ This method retrieves __always__ already cached object. And schedules a task to 
 #### `Asyncronously#forceGetWithRefreshScheduling()`
 
 This method retrieves __always__ already cached object. And __always__ schedules a task to refresh cache.
+
+#### Exception case
+
+If cache value hasn't been initialized, these methods behaves in the same as synchronous one.
 
 ### More information
 
