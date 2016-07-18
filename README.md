@@ -71,7 +71,7 @@ If this boolean value is true, it returns already cached object and suppresses e
 Example:
 
 ```java
-final AutoRefreshCache<Long> notSuppressExceptionCache = new AutoRefreshCache<>(10000, false, new Supplier<Long>() {
+final AutoRefreshCache<Long> notSuppressExceptionCache = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
     @Override
     public Long get() {
         // do something
@@ -80,7 +80,7 @@ final AutoRefreshCache<Long> notSuppressExceptionCache = new AutoRefreshCache<>(
 });
 notSuppressExceptionCache.get(); // throws exception
 
-final AutoRefreshCache<Long> suppressExceptionCache = new AutoRefreshCache<>(10000, true, new Supplier<Long>() {
+final AutoRefreshCache<Long> suppressExceptionCache = new AutoRefreshCache<>(10, true, new Supplier<Long>() {
     @Override
     public Long get() {
         // do something
