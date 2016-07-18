@@ -25,6 +25,7 @@ public class AutoRefreshCache<T> {
 
     private volatile long expiresAt;
     private volatile T cached;
+    private volatile boolean isInitialized;
 
     /**
      * A constructor. Initial cache value is null and expired.
@@ -36,7 +37,7 @@ public class AutoRefreshCache<T> {
     public AutoRefreshCache(final long discardIntervalSec,
                             final boolean useBeforeCacheOnException,
                             final Supplier<T> supplier) {
-        this(null, 0, discardIntervalSec, useBeforeCacheOnException, supplier);
+        this(null, 0, discardIntervalSec, useBeforeCacheOnException, supplier, false);
     }
 
     /**
@@ -51,18 +52,20 @@ public class AutoRefreshCache<T> {
                             final long discardIntervalSec,
                             final boolean useBeforeCacheOnException,
                             final Supplier<T> supplier) {
-        this(init, getExpiresAt(discardIntervalSec), discardIntervalSec, useBeforeCacheOnException, supplier);
+        this(init, getExpiresAt(discardIntervalSec), discardIntervalSec, useBeforeCacheOnException, supplier, true);
     }
 
     private AutoRefreshCache(final T init,
                              final long expiresAt,
                              final long discardIntervalSec,
                              final boolean useBeforeCacheOnException,
-                             final Supplier<T> supplier) {
+                             final Supplier<T> supplier,
+                             final boolean isInitialized) {
         this.discardIntervalSec = discardIntervalSec;
         this.supplier = supplier;
         this.useBeforeCacheOnException = useBeforeCacheOnException;
         this.expiresAt = expiresAt;
+        this.isInitialized = isInitialized;
         cached = init;
         semaphore = new Semaphore(1);
     }
@@ -85,6 +88,8 @@ public class AutoRefreshCache<T> {
      * <p>
      * To describe in other words, this method retrieves always already cached object.
      * And schedules a task to refresh cache when cache is expired.
+     * <p>
+     * Exception case: If cache object has not been initialized, this method behaves in the same as {@link AutoRefreshCache#get()}
      *
      * @return Already cached object.
      */
@@ -115,6 +120,8 @@ public class AutoRefreshCache<T> {
      * <p>
      * To describe in other words, this method retrieves always already cached object.
      * And schedules a task to refresh cache.
+     * <p>
+     * Exception case: If cache object has not been initialized, this method behaves in the same as {@link AutoRefreshCache#forceGet()}
      *
      * @return Already cached object.
      */
@@ -130,7 +137,7 @@ public class AutoRefreshCache<T> {
         return cached;
     }
 
-    T forceGet(final boolean isScheduledRefreshing) {
+    private T forceGet(final boolean isScheduledRefreshing) {
         if (!semaphore.tryAcquire()) {
             // If attempt to get cached object while refreshing that by other thread, current thread returns old cache.
             return cached;
@@ -140,17 +147,21 @@ public class AutoRefreshCache<T> {
             try {
                 this.cached = supplier.get();
             } catch (RuntimeException e) {
-                if (!useBeforeCacheOnException) {
+                if (!useBeforeCacheOnException || !isInitialized) {
+                    if (!isInitialized) {
+                        log.warn("Cache has not been initialized");
+                    }
                     semaphore.release();
                     throw e;
                 }
                 log.warn("Failed to refresh cache so use old cache", e);
             }
             expiresAt = getExpiresAt(discardIntervalSec);
+            isInitialized = true;
             semaphore.release();
         };
 
-        if (isScheduledRefreshing) {
+        if (isScheduledRefreshing && isInitialized) { // if not initialized, don't enter to this clause
             final T currentCached = cached;
             final ExecutorService pool = Executors.newFixedThreadPool(1);
             pool.submit(refresher);

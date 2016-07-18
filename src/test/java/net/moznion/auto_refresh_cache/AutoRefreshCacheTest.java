@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 public class AutoRefreshCacheTest {
     @Test
     public void testGet() throws Exception {
-        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(1000, false, new Supplier<Long>() {
+        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(1, false, new Supplier<Long>() {
             private long i = 0;
 
             @Override
@@ -28,7 +28,7 @@ public class AutoRefreshCacheTest {
 
     @Test
     public void testForceGet() throws Exception {
-        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(1000, false, new Supplier<Long>() {
+        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(1, false, new Supplier<Long>() {
             private long i = 0;
 
             @Override
@@ -43,7 +43,7 @@ public class AutoRefreshCacheTest {
 
     @Test
     public void testForAtomicity() throws Exception {
-        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(10000, false, new Supplier<Long>() {
+        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
             private long i = 0;
 
             @Override
@@ -75,7 +75,7 @@ public class AutoRefreshCacheTest {
 
     @Test
     public void testForExceptionalHandling() throws Exception {
-        final AutoRefreshCache<Long> notSuppressException = new AutoRefreshCache<>(10000, false, new Supplier<Long>() {
+        final AutoRefreshCache<Long> notSuppressException = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
             @Override
             public Long get() {
                 throw new RuntimeException("Exception!");
@@ -83,19 +83,24 @@ public class AutoRefreshCacheTest {
         });
         assertThatThrownBy(notSuppressException::forceGet).isInstanceOf(RuntimeException.class);
 
-        final AutoRefreshCache<Long> suppressException = new AutoRefreshCache<>(1L, 10000, true, new Supplier<Long>() {
+        final AutoRefreshCache<Long> suppressException = new AutoRefreshCache<>(1L, 10, true, () -> {
+            throw new RuntimeException("Exception!");
+        });
+        assertThat(suppressException.forceGet()).isEqualTo(1);
+        assertThat(suppressException.forceGet()).isEqualTo(1);
+
+        final AutoRefreshCache<Long> suppressExceptionWithNoInit = new AutoRefreshCache<>(10, true, new Supplier<Long>() {
             @Override
             public Long get() {
                 throw new RuntimeException("Exception!");
             }
         });
-        assertThat(suppressException.forceGet()).isEqualTo(1);
-        assertThat(suppressException.forceGet()).isEqualTo(1);
+        assertThatThrownBy(suppressExceptionWithNoInit::forceGet).isInstanceOf(RuntimeException.class);
     }
 
     @Test
     public void testWithInitialCachedObject() throws Exception {
-        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(100L, 10000, false, new Supplier<Long>() {
+        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(100L, 10, false, new Supplier<Long>() {
             private long i = 0;
 
             @Override
@@ -110,8 +115,8 @@ public class AutoRefreshCacheTest {
 
     @Test
     public void testGetWithRefreshScheduling() throws Exception {
-        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(1L, 10000, false, new Supplier<Long>() {
-            private long i = 1;
+        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
+            private long i = 0;
 
             @Override
             public Long get() {
@@ -119,12 +124,28 @@ public class AutoRefreshCacheTest {
             }
         });
 
-        assertThat(longAutoRefreshCache.get(Integer.MAX_VALUE, true)).isEqualTo(1L);
+        assertThat(longAutoRefreshCache.get(Integer.MAX_VALUE, true)).isEqualTo(1L); // generate cache synchronous
+        Thread.sleep(100);
+        assertThat(longAutoRefreshCache.getWithRefreshScheduling()).isEqualTo(1L);
+        Thread.sleep(100);
+        assertThat(longAutoRefreshCache.forceGetWithRefreshScheduling()).isEqualTo(1L);
         Thread.sleep(100);
         assertThat(longAutoRefreshCache.getWithRefreshScheduling()).isEqualTo(2L);
+
+        final AutoRefreshCache<Long> longAutoRefreshCacheWithInit = new AutoRefreshCache<>(1L, 10, false, new Supplier<Long>() {
+            private long i = 1;
+
+            @Override
+            public Long get() {
+                return ++i;
+            }
+        });
+        assertThat(longAutoRefreshCacheWithInit.get(Integer.MAX_VALUE, true)).isEqualTo(1L);
         Thread.sleep(100);
-        assertThat(longAutoRefreshCache.forceGetWithRefreshScheduling()).isEqualTo(2L);
+        assertThat(longAutoRefreshCacheWithInit.getWithRefreshScheduling()).isEqualTo(2L);
         Thread.sleep(100);
-        assertThat(longAutoRefreshCache.getWithRefreshScheduling()).isEqualTo(3L);
+        assertThat(longAutoRefreshCacheWithInit.forceGetWithRefreshScheduling()).isEqualTo(2L);
+        Thread.sleep(100);
+        assertThat(longAutoRefreshCacheWithInit.getWithRefreshScheduling()).isEqualTo(3L);
     }
 }
