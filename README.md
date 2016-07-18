@@ -104,11 +104,11 @@ This library has two asynchronously methods;
 These methods delegate and schedules a task to refresh cache to the other thread.  
 They returns always already cached object; refreshed cache object will be available from the next calling.
 
-#### `Asyncronously#getWithRefreshScheduling()`
+#### Asyncronously#getWithRefreshScheduling()
 
 This method retrieves __always__ already cached object. And schedules a task to refresh cache when cache is expired.
 
-#### `Asyncronously#forceGetWithRefreshScheduling()`
+#### Asyncronously#forceGetWithRefreshScheduling()
 
 This method retrieves __always__ already cached object. And __always__ schedules a task to refresh cache.
 
