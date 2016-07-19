@@ -1,21 +1,22 @@
 package net.moznion.auto_refresh_cache;
 
-import lombok.extern.slf4j.Slf4j;
-
 import java.time.Instant;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Cached object that can be refreshed automatically when cache is expired.
  * <p>
- * It holds the same object until cache is expired,
- * and it refreshes the object by given supplier automatically when cache is expired.
+ * It holds the same value until cache is expired,
+ * and it refreshes the value by given supplier automatically when cache is expired.
  *
- * @param <T> Type of cache object.
+ * @param <T> Type of cache value.
  */
 @Slf4j
 public class AutoRefreshCache<T> {
@@ -31,9 +32,9 @@ public class AutoRefreshCache<T> {
     /**
      * A constructor. Initial cache value is null and expired.
      *
-     * @param discardIntervalSec        Lifetime of cache object (seconds). If this interval is over, cache object will be refreshed by given supplier.
-     * @param supplier                  Supplier of cache object. This supplier is used when making a cache object and refreshing one.
-     * @param useBeforeCacheOnException If true, it returns already cached object and suppresses exception when supplier raises some exception. Otherwise, it throws exception as it is.
+     * @param discardIntervalSec Lifetime of cache value (seconds). If this interval is over, cache value will be refreshed by given supplier.
+     * @param supplier Supplier of cache value. This supplier is used when making a cache value and refreshing one.
+     * @param useBeforeCacheOnException If true, it returns already cached value and suppresses exception when supplier raises some exception. Otherwise, it throws exception as it is.
      */
     public AutoRefreshCache(final long discardIntervalSec,
                             final boolean useBeforeCacheOnException,
@@ -42,18 +43,19 @@ public class AutoRefreshCache<T> {
     }
 
     /**
-     * A constructor with initial cached object.
+     * A constructor with initial cached value.
      *
-     * @param init                      the initial cached object.
-     * @param discardIntervalSec        Lifetime of cache object (seconds). If this interval is over, cache object will be refreshed by given supplier.
-     * @param supplier                  Supplier of cache object. This supplier is used when making a cache object and refreshing one.
-     * @param useBeforeCacheOnException If true, it returns already cached object and suppresses exception when supplier raises some exception. Otherwise, it throws exception as it is.
+     * @param init the initial cached value.
+     * @param discardIntervalSec Lifetime of cache value (seconds). If this interval is over, cache value will be refreshed by given supplier.
+     * @param supplier Supplier of cache value. This supplier is used when making a cache value and refreshing one.
+     * @param useBeforeCacheOnException If true, it returns already cached value and suppresses exception when supplier raises some exception. Otherwise, it throws exception as it is.
      */
     public AutoRefreshCache(final T init,
                             final long discardIntervalSec,
                             final boolean useBeforeCacheOnException,
                             final Supplier<T> supplier) {
-        this(init, getExpiresAt(discardIntervalSec), discardIntervalSec, useBeforeCacheOnException, supplier, true);
+        this(init, getExpiresAt(discardIntervalSec), discardIntervalSec, useBeforeCacheOnException, supplier,
+             true);
     }
 
     private AutoRefreshCache(final T init,
@@ -72,61 +74,61 @@ public class AutoRefreshCache<T> {
     }
 
     /**
-     * Get cached or refreshed object.
+     * Get cached or refreshed value.
      *
-     * @return When cache is alive, it returns a cached object. Otherwise, it returns an object that is refreshed by supplier.
+     * @return When cache is alive, it returns a cached value. Otherwise, it returns a value that is refreshed by supplier.
      */
     public T get() {
-        return get(getCurrentEpoch(), false);
+        return get(getCurrentEpoch(), false).cached;
     }
 
     /**
-     * Get cached object. And schedule to refresh cache if cache is expired.
+     * Get cached value. And schedule to refresh cache if cache is expired.
      * <p>
-     * This method doesn't get refreshed cache object even if cache is expired; refreshed cache object will be available from the next calling.
+     * This method doesn't get refreshed cache value even if cache is expired; refreshed cache value will be available from the next calling.
      * When cache is expired, this method delegates to refresh processing to another thread.
      * It means refreshing processing is executed as asynchronous on other thread.
      * <p>
-     * To describe in other words, this method retrieves always already cached object.
+     * To describe in other words, this method retrieves always already cached value.
      * And schedules a task to refresh cache when cache is expired.
      * <p>
-     * Exception case: If cache object has not been initialized, this method behaves in the same as {@link AutoRefreshCache#get()}
+     * Exception case: If cache value has not been initialized, this method behaves in the same as {@link AutoRefreshCache#get()}
      *
-     * @return Already cached object.
+     * @return Already cached value and {@link Future} of task which is scheduled to refresh. If there is no necessary to schedule task to refresh, future will be empty.
      */
-    public T getWithRefreshScheduling() {
+    public CacheWithScheduledFuture<T> getWithRefreshScheduling() {
         return get(getCurrentEpoch(), true);
     }
 
     /**
-     * Get refreshed object.
+     * Get refreshed value.
      * <p>
-     * It returns always refreshed object and extends lifetime.
-     * But if other thread is attempting to refresh, this method returns the cached object that is not refreshed.
+     * It returns always refreshed value and extends lifetime.
+     * But if other thread is attempting to refresh, this method returns the cached value that is not refreshed.
      * <p>
-     * This method runs as exclusive between threads to ensure atomicity of updating cached object and lifetime.
+     * This method runs as exclusive between threads to ensure atomicity of updating cached value and lifetime.
      *
-     * @return Refreshed object.
+     * @return Refreshed value.
      */
     public T forceGet() {
-        return forceGet(false);
+        return forceGet(false).cached;
     }
 
     /**
-     * Get cached object with scheduling to refresh cache always.
+     * Get cached value with scheduling to refresh cache always.
      * <p>
-     * This method doesn't get refreshed cache object; refreshed cache object will be available from the next calling.
+     * This method doesn't get refreshed cache value; refreshed cache value will be available from the next calling.
      * This method delegates to refresh processing to another thread.
      * It means refreshing processing is executed as asynchronous on other thread.
      * <p>
-     * To describe in other words, this method retrieves always already cached object.
+     * To describe in other words, this method retrieves always already cached value.
      * And schedules a task to refresh cache.
      * <p>
-     * Exception case: If cache object has not been initialized, this method behaves in the same as {@link AutoRefreshCache#forceGet()}
+     * Exception case: If cache value has not been initialized, this method behaves in the same as {@link AutoRefreshCache#forceGet()}
      *
-     * @return Already cached object.
+     * @return Already cached value and {@link Future} of task which is scheduled to refresh. If there is no necessary to schedule task to refresh, future will be empty.
      */
-    public T forceGetWithRefreshScheduling() {
+    public CacheWithScheduledFuture<T> forceGetWithRefreshScheduling() {
         return forceGet(true);
     }
 
@@ -156,18 +158,18 @@ public class AutoRefreshCache<T> {
         return future;
     }
 
-    T get(final long currentEpoch, final boolean isDelayed) {
+    CacheWithScheduledFuture<T> get(final long currentEpoch, final boolean isDelayed) {
         if (expiresAt < currentEpoch) {
             // Expired. Fill new instance
             return forceGet(isDelayed);
         }
-        return cached;
+        return new CacheWithScheduledFuture<>(cached, Optional.empty());
     }
 
-    private T forceGet(final boolean isScheduledRefreshing) {
+    private CacheWithScheduledFuture<T> forceGet(final boolean isScheduledRefreshing) {
         if (!semaphore.tryAcquire()) {
-            // If attempt to get cached object while refreshing that by other thread, current thread returns old cache.
-            return cached;
+            // If attempt to get cached value while refreshing that by other thread, current thread returns old cache.
+            return new CacheWithScheduledFuture<>(cached, Optional.empty());
         }
 
         final Runnable refresher = () -> {
@@ -191,13 +193,13 @@ public class AutoRefreshCache<T> {
         if (isScheduledRefreshing && isInitialized) { // if not initialized, don't enter to this clause
             final T currentCached = cached;
             final ExecutorService executorService = Executors.newSingleThreadExecutor();
-            executorService.submit(refresher);
+            final Future<?> future = executorService.submit(refresher);
             executorService.shutdown();
-            return currentCached;
+            return new CacheWithScheduledFuture<>(currentCached, Optional.ofNullable(future));
         }
 
         refresher.run();
-        return cached;
+        return new CacheWithScheduledFuture<>(cached, Optional.empty());
     }
 
     private static long getCurrentEpoch() {

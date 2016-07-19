@@ -23,7 +23,11 @@ public class AutoRefreshCacheTest {
         });
         assertThat(longAutoRefreshCache.get()).isEqualTo(1L);
         assertThat(longAutoRefreshCache.get()).isEqualTo(1L);
-        assertThat(longAutoRefreshCache.get(Integer.MAX_VALUE, false)).isEqualTo(2L);
+
+        final CacheWithScheduledFuture<Long> cacheWithScheduledFuture =
+                longAutoRefreshCache.get(Integer.MAX_VALUE, false);
+        assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(2L);
+        assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
     }
 
     @Test
@@ -38,7 +42,11 @@ public class AutoRefreshCacheTest {
         });
         assertThat(longAutoRefreshCache.get()).isEqualTo(1L);
         assertThat(longAutoRefreshCache.forceGet()).isEqualTo(2L);
-        assertThat(longAutoRefreshCache.get(Integer.MAX_VALUE, false)).isEqualTo(3L);
+
+        final CacheWithScheduledFuture<Long> cacheWithScheduledFuture =
+                longAutoRefreshCache.get(Integer.MAX_VALUE, false);
+        assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(3L);
+        assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
     }
 
     @Test
@@ -62,7 +70,7 @@ public class AutoRefreshCacheTest {
         final Future<?> future2 = pool.submit(() -> assertThat(longAutoRefreshCache.forceGet()).isNull());
         final Future<?> future3 = pool.submit(() -> {
             try {
-                Thread.sleep(501);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -75,11 +83,8 @@ public class AutoRefreshCacheTest {
 
     @Test
     public void testForExceptionalHandling() throws Exception {
-        final AutoRefreshCache<Long> notSuppressException = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
-            @Override
-            public Long get() {
-                throw new RuntimeException("Exception!");
-            }
+        final AutoRefreshCache<Long> notSuppressException = new AutoRefreshCache<>(10, false, () -> {
+            throw new RuntimeException("Exception!");
         });
         assertThatThrownBy(notSuppressException::forceGet).isInstanceOf(RuntimeException.class);
 
@@ -89,11 +94,8 @@ public class AutoRefreshCacheTest {
         assertThat(suppressException.forceGet()).isEqualTo(1);
         assertThat(suppressException.forceGet()).isEqualTo(1);
 
-        final AutoRefreshCache<Long> suppressExceptionWithNoInit = new AutoRefreshCache<>(10, true, new Supplier<Long>() {
-            @Override
-            public Long get() {
-                throw new RuntimeException("Exception!");
-            }
+        final AutoRefreshCache<Long> suppressExceptionWithNoInit = new AutoRefreshCache<>(10, true, () -> {
+            throw new RuntimeException("Exception!");
         });
         assertThatThrownBy(suppressExceptionWithNoInit::forceGet).isInstanceOf(RuntimeException.class);
     }
@@ -124,13 +126,25 @@ public class AutoRefreshCacheTest {
             }
         });
 
-        assertThat(longAutoRefreshCache.get(Integer.MAX_VALUE, true)).isEqualTo(1L); // generate cache synchronous
-        Thread.sleep(100);
-        assertThat(longAutoRefreshCache.getWithRefreshScheduling()).isEqualTo(1L);
-        Thread.sleep(100);
-        assertThat(longAutoRefreshCache.forceGetWithRefreshScheduling()).isEqualTo(1L);
-        Thread.sleep(100);
-        assertThat(longAutoRefreshCache.getWithRefreshScheduling()).isEqualTo(2L);
+        {
+            CacheWithScheduledFuture<Long> cacheWithScheduledFuture =
+                    longAutoRefreshCache.get(Integer.MAX_VALUE, true); // generate cache synchronous
+            assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(1L);
+            assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
+
+            cacheWithScheduledFuture = longAutoRefreshCache.getWithRefreshScheduling();
+            assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(1L);
+            assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
+
+            cacheWithScheduledFuture = longAutoRefreshCache.forceGetWithRefreshScheduling();
+            assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(1L);
+            assertThat(cacheWithScheduledFuture.getFuture()).isPresent();
+            assertThat(cacheWithScheduledFuture.getFuture().get().get()).isNull();
+
+            cacheWithScheduledFuture = longAutoRefreshCache.getWithRefreshScheduling();
+            assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(2L);
+            assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
+        }
 
         final AutoRefreshCache<Long> longAutoRefreshCacheWithInit = new AutoRefreshCache<>(1L, 10, false, new Supplier<Long>() {
             private long i = 1;
@@ -140,13 +154,27 @@ public class AutoRefreshCacheTest {
                 return ++i;
             }
         });
-        assertThat(longAutoRefreshCacheWithInit.get(Integer.MAX_VALUE, true)).isEqualTo(1L);
-        Thread.sleep(100);
-        assertThat(longAutoRefreshCacheWithInit.getWithRefreshScheduling()).isEqualTo(2L);
-        Thread.sleep(100);
-        assertThat(longAutoRefreshCacheWithInit.forceGetWithRefreshScheduling()).isEqualTo(2L);
-        Thread.sleep(100);
-        assertThat(longAutoRefreshCacheWithInit.getWithRefreshScheduling()).isEqualTo(3L);
+
+        {
+            CacheWithScheduledFuture<Long> cacheWithScheduledFuture =
+                    longAutoRefreshCacheWithInit.get(Integer.MAX_VALUE, true);
+            assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(1L);
+            assertThat(cacheWithScheduledFuture.getFuture()).isPresent();
+            assertThat(cacheWithScheduledFuture.getFuture().get().get()).isNull();
+
+            cacheWithScheduledFuture = longAutoRefreshCacheWithInit.getWithRefreshScheduling();
+            assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(2L);
+            assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
+
+            cacheWithScheduledFuture = longAutoRefreshCacheWithInit.forceGetWithRefreshScheduling();
+            assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(2L);
+            assertThat(cacheWithScheduledFuture.getFuture()).isPresent();
+            assertThat(cacheWithScheduledFuture.getFuture().get().get()).isNull();
+
+            cacheWithScheduledFuture = longAutoRefreshCacheWithInit.getWithRefreshScheduling();
+            assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(3L);
+            assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
+        }
     }
 
     @Test
