@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.time.Instant;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
 
@@ -67,7 +68,7 @@ public class AutoRefreshCache<T> {
         this.expiresAt = expiresAt;
         this.isInitialized = isInitialized;
         cached = init;
-        semaphore = new Semaphore(1);
+        semaphore = new Semaphore(1, true);
     }
 
     /**
@@ -129,6 +130,32 @@ public class AutoRefreshCache<T> {
         return forceGet(true);
     }
 
+    /**
+     * Set cache manually as asynchronous.
+     *
+     * @param cache cache value to set
+     *
+     * @return {@link Future} of cached value. The Future's get method will return the given result upon successful completion.
+     */
+    public Future<?> setCacheAsync(final T cache) {
+        final ExecutorService executorService = Executors.newSingleThreadExecutor();
+        final Future<?> future = executorService.submit(() -> {
+            try {
+                semaphore.acquire();
+            } catch (InterruptedException e) {
+                log.error("Failed to set cache", e);
+                return;
+            }
+            cached = cache;
+            expiresAt = getExpiresAt(discardIntervalSec);
+            isInitialized = true;
+            semaphore.release();
+        });
+        executorService.shutdown();
+
+        return future;
+    }
+
     T get(final long currentEpoch, final boolean isDelayed) {
         if (expiresAt < currentEpoch) {
             // Expired. Fill new instance
@@ -145,7 +172,7 @@ public class AutoRefreshCache<T> {
 
         final Runnable refresher = () -> {
             try {
-                this.cached = supplier.get();
+                cached = supplier.get();
             } catch (RuntimeException e) {
                 if (!useBeforeCacheOnException || !isInitialized) {
                     if (!isInitialized) {

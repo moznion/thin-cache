@@ -148,4 +148,20 @@ public class AutoRefreshCacheTest {
         Thread.sleep(100);
         assertThat(longAutoRefreshCacheWithInit.getWithRefreshScheduling()).isEqualTo(3L);
     }
+
+    @Test
+    public void testSetCacheAsync() throws Exception {
+        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
+            private long i = 0;
+
+            @Override
+            public Long get() {
+                return ++i;
+            }
+        });
+
+        final Future<?> future = longAutoRefreshCache.setCacheAsync(100L);
+        assertThat(future.get()).isEqualTo(null);
+        assertThat(longAutoRefreshCache.get()).isEqualTo(100L);
+    }
 }
