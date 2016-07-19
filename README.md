@@ -26,7 +26,7 @@ autoRefreshCache.get(); // => 1L (hit cache)
 
 autoRefreshCache.get(); // => 2L (expired, refresh cache)
 
-// Get refreshed object even if it dosen't spend 10 seconds
+// Get refreshed value even if it dosen't spend 10 seconds
 autoRefreshCache.forceGet(); // => 3L (force refresh)
 ```
 
@@ -49,7 +49,7 @@ autoRefreshCache.get(); // => 0L (hit cache)
 
 autoRefreshCache.get(); // => 1L (expired, refresh cache)
 
-// Get refreshed object even if it dosen't spend 10 seconds
+// Get refreshed value even if it dosen't spend 10 seconds
 autoRefreshCache.forceGet(); // => 2L (force refresh)
 ```
 
@@ -58,15 +58,15 @@ Description
 
 ### Overview
 
-Cached object that can be refreshed automatically when cache is expired.
+AutoRefresh is a cached object that can be refreshed automatically when cache is expired.
 
-It holds the same object until cache is expired, and it refreshes the object by given supplier automatically when cache is expired.
+It holds the same value until cache is expired, and it refreshes the value by given supplier automatically when cache is expired.
 
 ### Exceptional Handling
 
 You can control exceptional handling through the constructor argument.
 
-If this boolean value is true, it returns already cached object and suppresses exception when supplier (generator of cache object) raises some exception. Otherwise, it throws exception as it is.
+If this boolean value is true, it returns already cached value and suppresses exception when supplier (generator of cache value) raises some exception. Otherwise, it throws exception as it is.
 
 Example:
 
@@ -102,11 +102,11 @@ This library has two asynchronously methods;
 - `AutoRefreshCache#forceGetWithRefreshAheadAsync()`
 
 These methods delegate and schedules a task to refresh cache to the other thread.  
-They returns always already cached object; refreshed cache object will be available from the next calling.
+They returns always already cached value; refreshed cache value will be available from the next calling.
 
 #### AutoRefreshCache#getWithRefreshAheadAsync()
 
-This method retrieves __always__ already cached object. And schedules a task to refresh cache when cache is expired.
+This method retrieves __always__ already cached value. And schedules a task to refresh cache when cache is expired.
 
 Example:
 
@@ -142,7 +142,7 @@ cacheWithScheduledFuture.getCached(); // => 2L
 
 #### AutoRefreshCache#forceGetWithRefreshAheadAsync()
 
-This method retrieves __always__ already cached object. And __always__ schedules a task to refresh cache.
+This method retrieves __always__ already cached value. And __always__ schedules a task to refresh cache.
 
 Example:
 
