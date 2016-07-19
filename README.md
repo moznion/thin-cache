@@ -98,19 +98,86 @@ If cache value hasn't been initialized, it throws exception as it even if the se
 
 This library has two asynchronously methods;
 
-- `Asyncronously#getWithRefreshScheduling()`
-- `Asyncronously#forceGetWithRefreshScheduling()`
+- `AutoRefreshCache#getWithRefreshAheadAsync()`
+- `AutoRefreshCache#forceGetWithRefreshAheadAsync()`
 
 These methods delegate and schedules a task to refresh cache to the other thread.  
 They returns always already cached object; refreshed cache object will be available from the next calling.
 
-#### Asyncronously#getWithRefreshScheduling()
+#### AutoRefreshCache#getWithRefreshAheadAsync()
 
 This method retrieves __always__ already cached object. And schedules a task to refresh cache when cache is expired.
 
-#### Asyncronously#forceGetWithRefreshScheduling()
+Example:
+
+```java
+final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
+    private long i = 0;
+
+    @Override
+    public Long get() {
+        return ++i;
+    }
+});
+
+CacheWithScheduledFuture<Long> cacheWithScheduledFuture = longAutoRefreshCache.getWithRefreshAheadAsync(); // Cache value hasn't been initialized, so initialize cache *synchronously*
+cacheWithScheduledFuture.getCached(); // => 1L
+
+cacheWithScheduledFuture = longAutoRefreshCache.getWithRefreshAheadAsync(); // Hit cache, it doesn't schedule a task to refresh
+cacheWithScheduledFuture.getCached(); // => 1L
+
+// 10 seconds spent...
+
+cacheWithScheduledFuture = longAutoRefreshCache.getWithRefreshAheadAsync(); // Cache expired but fetch old cache. It schedules a task to refresh
+cacheWithScheduledFuture.getCached(); // => 1L
+
+final Optional<Future<?>> maybeFuture = cacheWithScheduledFuture.getFuture();
+if (maybeFuture.isPresent()) { // If a task is scheduled, `getWithRefreshAheadAsync()` returns Future with cached value
+    maybeFuture.get().get(); // sync here (you don't have to do this)
+}
+
+cacheWithScheduledFuture = longAutoRefreshCache.getWithRefreshAheadAsync(); // Hit the new cache, it doesn't schedule a task to refresh
+cacheWithScheduledFuture.getCached(); // => 2L
+```
+
+#### AutoRefreshCache#forceGetWithRefreshAheadAsync()
 
 This method retrieves __always__ already cached object. And __always__ schedules a task to refresh cache.
+
+Example:
+
+```java
+final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
+    private long i = 0;
+
+    @Override
+    public Long get() {
+        return ++i;
+    }
+});
+
+CacheWithScheduledFuture<Long> cacheWithScheduledFuture = longAutoRefreshCache.forceGetWithRefreshAheadAsync(); // cache value hasn't been initialized, so initialize cache *synchronously*
+cacheWithScheduledFuture.getCached(); // => 1L
+
+cacheWithScheduledFuture = longAutoRefreshCache.forceGetWithRefreshAheadAsync(); // hit cache, it schedules a task to refresh
+cacheWithScheduledFuture.getCached(); // => 1L
+
+Optional<Future<?>> maybeFuture = cacheWithScheduledFuture.getFuture();
+if (maybeFuture.isPresent()) { // If a task is scheduled, `forceGetWithRefreshAheadAsync()` returns Future with cached value
+    maybeFuture.get().get(); // sync here (you don't have to do this)
+}
+
+cacheWithScheduledFuture = longAutoRefreshCache.forceGetWithRefreshAheadAsync(); // hit cache, it schedules a task to refresh
+cacheWithScheduledFuture.getCached(); // => 2L
+
+maybeFuture = cacheWithScheduledFuture.getFuture();
+if (maybeFuture.isPresent()) { // If a task is scheduled, `forceGetWithRefreshAheadAsync()` returns Future with cached value
+    maybeFuture.get().get(); // sync here (you don't have to do this)
+}
+
+cacheWithScheduledFuture = longAutoRefreshCache.forceGetWithRefreshAheadAsync(); // hit cache, it schedules a task to refresh
+cacheWithScheduledFuture.getCached(); // => 3L
+```
 
 #### Exception case
 
