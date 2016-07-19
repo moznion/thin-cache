@@ -163,9 +163,9 @@ public class AutoRefreshCache<T> {
 
         if (isScheduledRefreshing && isInitialized) { // if not initialized, don't enter to this clause
             final T currentCached = cached;
-            final ExecutorService pool = Executors.newFixedThreadPool(1);
-            pool.submit(refresher);
-            pool.shutdown();
+            final ExecutorService executorService = Executors.newSingleThreadExecutor();
+            executorService.submit(refresher);
+            executorService.shutdown();
             return currentCached;
         }
 
