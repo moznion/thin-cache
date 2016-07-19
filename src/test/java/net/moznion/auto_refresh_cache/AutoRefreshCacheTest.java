@@ -2,6 +2,8 @@ package net.moznion.auto_refresh_cache;
 
 import org.junit.Test;
 
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -116,7 +118,7 @@ public class AutoRefreshCacheTest {
     }
 
     @Test
-    public void testGetWithRefreshScheduling() throws Exception {
+    public void testGetWithRefreshAheadAsync() throws Exception {
         final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
             private long i = 0;
 
@@ -132,16 +134,16 @@ public class AutoRefreshCacheTest {
             assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(1L);
             assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
 
-            cacheWithScheduledFuture = longAutoRefreshCache.getWithRefreshScheduling();
+            cacheWithScheduledFuture = longAutoRefreshCache.getWithRefreshAheadAsync();
             assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(1L);
             assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
 
-            cacheWithScheduledFuture = longAutoRefreshCache.forceGetWithRefreshScheduling();
+            cacheWithScheduledFuture = longAutoRefreshCache.forceGetWithRefreshAheadAsync();
             assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(1L);
             assertThat(cacheWithScheduledFuture.getFuture()).isPresent();
             assertThat(cacheWithScheduledFuture.getFuture().get().get()).isNull();
 
-            cacheWithScheduledFuture = longAutoRefreshCache.getWithRefreshScheduling();
+            cacheWithScheduledFuture = longAutoRefreshCache.getWithRefreshAheadAsync();
             assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(2L);
             assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
         }
@@ -162,16 +164,16 @@ public class AutoRefreshCacheTest {
             assertThat(cacheWithScheduledFuture.getFuture()).isPresent();
             assertThat(cacheWithScheduledFuture.getFuture().get().get()).isNull();
 
-            cacheWithScheduledFuture = longAutoRefreshCacheWithInit.getWithRefreshScheduling();
+            cacheWithScheduledFuture = longAutoRefreshCacheWithInit.getWithRefreshAheadAsync();
             assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(2L);
             assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
 
-            cacheWithScheduledFuture = longAutoRefreshCacheWithInit.forceGetWithRefreshScheduling();
+            cacheWithScheduledFuture = longAutoRefreshCacheWithInit.forceGetWithRefreshAheadAsync();
             assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(2L);
             assertThat(cacheWithScheduledFuture.getFuture()).isPresent();
             assertThat(cacheWithScheduledFuture.getFuture().get().get()).isNull();
 
-            cacheWithScheduledFuture = longAutoRefreshCacheWithInit.getWithRefreshScheduling();
+            cacheWithScheduledFuture = longAutoRefreshCacheWithInit.getWithRefreshAheadAsync();
             assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(3L);
             assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
         }

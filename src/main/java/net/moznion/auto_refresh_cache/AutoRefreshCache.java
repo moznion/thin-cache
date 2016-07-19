@@ -74,7 +74,7 @@ public class AutoRefreshCache<T> {
     }
 
     /**
-     * Get cached or refreshed value.
+     * Get cached or refreshed value. This method works like a read-through caching pattern.
      *
      * @return When cache is alive, it returns a cached value. Otherwise, it returns a value that is refreshed by supplier.
      */
@@ -83,7 +83,7 @@ public class AutoRefreshCache<T> {
     }
 
     /**
-     * Get cached value. And schedule to refresh cache if cache is expired.
+     * Get cached value. And schedule to refresh cache if cache is expired. This method works like a refresh-ahead caching pattern.
      * <p>
      * This method doesn't get refreshed cache value even if cache is expired; refreshed cache value will be available from the next calling.
      * When cache is expired, this method delegates to refresh processing to another thread.
@@ -96,12 +96,12 @@ public class AutoRefreshCache<T> {
      *
      * @return Already cached value and {@link Future} of task which is scheduled to refresh. If there is no necessary to schedule task to refresh, future will be empty.
      */
-    public CacheWithScheduledFuture<T> getWithRefreshScheduling() {
+    public CacheWithScheduledFuture<T> getWithRefreshAheadAsync() {
         return get(getCurrentEpoch(), true);
     }
 
     /**
-     * Get refreshed value.
+     * Get refreshed value. This method works like a write-through caching pattern.
      * <p>
      * It returns always refreshed value and extends lifetime.
      * But if other thread is attempting to refresh, this method returns the cached value that is not refreshed.
@@ -115,7 +115,7 @@ public class AutoRefreshCache<T> {
     }
 
     /**
-     * Get cached value with scheduling to refresh cache always.
+     * Get cached value with scheduling to refresh cache always. This method works like a refresh-ahead caching pattern.
      * <p>
      * This method doesn't get refreshed cache value; refreshed cache value will be available from the next calling.
      * This method delegates to refresh processing to another thread.
@@ -128,7 +128,7 @@ public class AutoRefreshCache<T> {
      *
      * @return Already cached value and {@link Future} of task which is scheduled to refresh. If there is no necessary to schedule task to refresh, future will be empty.
      */
-    public CacheWithScheduledFuture<T> forceGetWithRefreshScheduling() {
+    public CacheWithScheduledFuture<T> forceGetWithRefreshAheadAsync() {
         return forceGet(true);
     }
 
