@@ -3,7 +3,7 @@
 
     <groupId>net.moznion</groupId>
     <artifactId>thin-cache</artifactId>
-    <version>0.4.1-SNAPSHOT</version>
+    <version>0.0.1</version>
     <packaging>jar</packaging>
 
     <name>thin-cache</name>
@@ -181,7 +181,7 @@
         <url>https://github.com/moznion/thin-cache</url>
         <connection>scm:git:git@github.com:moznion/thin-cache.git</connection>
         <developerConnection>scm:git:git@github.com:moznion/thin-cache.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>thin-cache-0.0.1</tag>
     </scm>
 
     <licenses>
