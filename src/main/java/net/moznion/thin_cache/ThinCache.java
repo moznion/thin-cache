@@ -142,16 +142,14 @@ public class ThinCache<T> {
     public Future<?> setCacheAsync(final T cache) {
         final ExecutorService executorService = Executors.newSingleThreadExecutor();
         final Future<?> future = executorService.submit(() -> {
-            try {
-                semaphore.acquire();
+            try (final CloseableSemaphoreWrapper semaphoreWrapper = new CloseableSemaphoreWrapper(semaphore)) {
+                semaphoreWrapper.acquire();
+                cached = cache;
+                expiresAt = getExpiresAt(discardIntervalSec);
+                isInitialized = true;
             } catch (InterruptedException e) {
                 log.error("Failed to set cache", e);
-                return;
             }
-            cached = cache;
-            expiresAt = getExpiresAt(discardIntervalSec);
-            isInitialized = true;
-            semaphore.release();
         });
         executorService.shutdown();
 
@@ -172,22 +170,25 @@ public class ThinCache<T> {
             return new CacheWithScheduledFuture<>(cached, Optional.empty());
         }
 
+        // If reach here, semaphore is acquired
+
         final Runnable refresher = () -> {
-            try {
-                cached = supplier.get();
-            } catch (RuntimeException e) {
-                if (!useBeforeCacheOnException || !isInitialized) {
-                    if (!isInitialized) {
-                        log.warn("Cache has not been initialized");
+            try (final CloseableSemaphoreWrapper semaphoreWrapper = new CloseableSemaphoreWrapper(semaphore)) {
+                try {
+                    cached = supplier.get();
+                } catch (RuntimeException e) {
+                    if (!useBeforeCacheOnException || !isInitialized) {
+                        if (!isInitialized) {
+                            log.warn("Cache has not been initialized");
+                        }
+                        throw e;
                     }
-                    semaphore.release();
-                    throw e;
+                    log.warn("Failed to refresh cache so use old cache", e);
                 }
-                log.warn("Failed to refresh cache so use old cache", e);
+
+                expiresAt = getExpiresAt(discardIntervalSec);
+                isInitialized = true;
             }
-            expiresAt = getExpiresAt(discardIntervalSec);
-            isInitialized = true;
-            semaphore.release();
         };
 
         if (isScheduledRefreshing && isInitialized) { // if not initialized, don't enter to this clause
