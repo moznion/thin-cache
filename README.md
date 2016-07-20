@@ -1,4 +1,4 @@
-auto-refresh-cache [![Build Status](https://travis-ci.org/moznion/auto-refresh-cache.svg?branch=master)](https://travis-ci.org/moznion/auto-refresh-cache) [![javadoc.io](https://javadocio-badges.herokuapp.com/net.moznion/auto-refresh-cache/badge.svg)](https://javadocio-badges.herokuapp.com/net.moznion/auto-refresh-cache)
+thin-cache [![Build Status](https://travis-ci.org/moznion/thin-cache.svg?branch=master)](https://travis-ci.org/moznion/thin-cache) [![javadoc.io](https://javadocio-badges.herokuapp.com/net.moznion/thin-cache/badge.svg)](https://javadocio-badges.herokuapp.com/net.moznion/thin-cache)
 ==
 
 Cached object that can be refreshed automatically when cache is expired.
@@ -10,7 +10,7 @@ Make a cache instance with no initial value.
 In this case, initializing of a cache value is postpone until the first call of method of getting.
 
 ```java
-final AutoRefreshCache<Long> autoRefreshCache = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
+final ThinCache<Long> thinCache = new ThinCache<>(10, false, new Supplier<Long>() {
     private long i = 0;
 
     @Override
@@ -19,21 +19,21 @@ final AutoRefreshCache<Long> autoRefreshCache = new AutoRefreshCache<>(10, false
     }
 });
 
-autoRefreshCache.get(); // => 1L (initialize cache)
-autoRefreshCache.get(); // => 1L (hit cache)
+thinCache.get(); // => 1L (initialize cache)
+thinCache.get(); // => 1L (hit cache)
 
 // 10 seconds spent...
 
-autoRefreshCache.get(); // => 2L (expired, refresh cache)
+thinCache.get(); // => 2L (expired, refresh cache)
 
 // Get refreshed value even if it dosen't spend 10 seconds
-autoRefreshCache.forceGet(); // => 3L (force refresh)
+thinCache.forceGet(); // => 3L (force refresh)
 ```
 
 Or you can make a cache instance with initial cache value;
 
 ```java
-final AutoRefreshCache<Long> autoRefreshCache = new AutoRefreshCache<>(0L, 10, false, new Supplier<Long>() {
+final ThinCache<Long> thinCache = new ThinCache<>(0L, 10, false, new Supplier<Long>() {
     private long i = 0;
 
     @Override
@@ -42,15 +42,15 @@ final AutoRefreshCache<Long> autoRefreshCache = new AutoRefreshCache<>(0L, 10, f
     }
 });
 
-autoRefreshCache.get(); // => 0L (hit cache, initial value)
-autoRefreshCache.get(); // => 0L (hit cache)
+thinCache.get(); // => 0L (hit cache, initial value)
+thinCache.get(); // => 0L (hit cache)
 
 // 10 seconds spent...
 
-autoRefreshCache.get(); // => 1L (expired, refresh cache)
+thinCache.get(); // => 1L (expired, refresh cache)
 
 // Get refreshed value even if it dosen't spend 10 seconds
-autoRefreshCache.forceGet(); // => 2L (force refresh)
+thinCache.forceGet(); // => 2L (force refresh)
 ```
 
 Description
@@ -58,7 +58,7 @@ Description
 
 ### Overview
 
-AutoRefresh is a cached object that can be refreshed automatically when cache is expired.
+ThinCache is a cached object that can be refreshed automatically when cache is expired.
 
 It holds the same value until cache is expired, and it refreshes the value by given supplier automatically when cache is expired.
 
@@ -71,7 +71,7 @@ If this boolean value is true, it returns already cached value and suppresses ex
 Example:
 
 ```java
-final AutoRefreshCache<Long> notSuppressExceptionCache = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
+final ThinCache<Long> notSuppressExceptionCache = new ThinCache<>(10, false, new Supplier<Long>() {
     @Override
     public Long get() {
         // do something
@@ -80,7 +80,7 @@ final AutoRefreshCache<Long> notSuppressExceptionCache = new AutoRefreshCache<>(
 });
 notSuppressExceptionCache.get(); // throws exception
 
-final AutoRefreshCache<Long> suppressExceptionCache = new AutoRefreshCache<>(10, true, new Supplier<Long>() {
+final ThinCache<Long> suppressExceptionCache = new ThinCache<>(10, true, new Supplier<Long>() {
     @Override
     public Long get() {
         // do something
@@ -98,20 +98,20 @@ If cache value hasn't been initialized, it throws exception as it even if the se
 
 This library has two asynchronously methods;
 
-- `AutoRefreshCache#getWithRefreshAheadAsync()`
-- `AutoRefreshCache#forceGetWithRefreshAheadAsync()`
+- `ThinCache#getWithRefreshAheadAsync()`
+- `ThinCache#forceGetWithRefreshAheadAsync()`
 
 These methods delegate and schedules a task to refresh cache to the other thread.  
 They returns always already cached value; refreshed cache value will be available from the next calling.
 
-#### AutoRefreshCache#getWithRefreshAheadAsync()
+#### ThinCache#getWithRefreshAheadAsync()
 
 This method retrieves __always__ already cached value. And schedules a task to refresh cache when cache is expired.
 
 Example:
 
 ```java
-final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
+final ThinCache<Long> longThinCache = new ThinCache<>(10, false, new Supplier<Long>() {
     private long i = 0;
 
     @Override
@@ -120,15 +120,15 @@ final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(10, f
     }
 });
 
-CacheWithScheduledFuture<Long> cacheWithScheduledFuture = longAutoRefreshCache.getWithRefreshAheadAsync(); // Cache value hasn't been initialized, so initialize cache *synchronously*
+CacheWithScheduledFuture<Long> cacheWithScheduledFuture = longThinCache.getWithRefreshAheadAsync(); // Cache value hasn't been initialized, so initialize cache *synchronously*
 cacheWithScheduledFuture.getCached(); // => 1L
 
-cacheWithScheduledFuture = longAutoRefreshCache.getWithRefreshAheadAsync(); // Hit cache, it doesn't schedule a task to refresh
+cacheWithScheduledFuture = longThinCache.getWithRefreshAheadAsync(); // Hit cache, it doesn't schedule a task to refresh
 cacheWithScheduledFuture.getCached(); // => 1L
 
 // 10 seconds spent...
 
-cacheWithScheduledFuture = longAutoRefreshCache.getWithRefreshAheadAsync(); // Cache expired but fetch old cache. It schedules a task to refresh
+cacheWithScheduledFuture = longThinCache.getWithRefreshAheadAsync(); // Cache expired but fetch old cache. It schedules a task to refresh
 cacheWithScheduledFuture.getCached(); // => 1L
 
 final Optional<Future<?>> maybeFuture = cacheWithScheduledFuture.getFuture();
@@ -136,18 +136,18 @@ if (maybeFuture.isPresent()) { // If a task is scheduled, `getWithRefreshAheadAs
     maybeFuture.get().get(); // sync here (you don't have to do this)
 }
 
-cacheWithScheduledFuture = longAutoRefreshCache.getWithRefreshAheadAsync(); // Hit the new cache, it doesn't schedule a task to refresh
+cacheWithScheduledFuture = longThinCache.getWithRefreshAheadAsync(); // Hit the new cache, it doesn't schedule a task to refresh
 cacheWithScheduledFuture.getCached(); // => 2L
 ```
 
-#### AutoRefreshCache#forceGetWithRefreshAheadAsync()
+#### ThinCache#forceGetWithRefreshAheadAsync()
 
 This method retrieves __always__ already cached value. And __always__ schedules a task to refresh cache.
 
 Example:
 
 ```java
-final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
+final ThinCache<Long> longThinCache = new ThinCache<>(10, false, new Supplier<Long>() {
     private long i = 0;
 
     @Override
@@ -156,10 +156,10 @@ final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(10, f
     }
 });
 
-CacheWithScheduledFuture<Long> cacheWithScheduledFuture = longAutoRefreshCache.forceGetWithRefreshAheadAsync(); // cache value hasn't been initialized, so initialize cache *synchronously*
+CacheWithScheduledFuture<Long> cacheWithScheduledFuture = longThinCache.forceGetWithRefreshAheadAsync(); // cache value hasn't been initialized, so initialize cache *synchronously*
 cacheWithScheduledFuture.getCached(); // => 1L
 
-cacheWithScheduledFuture = longAutoRefreshCache.forceGetWithRefreshAheadAsync(); // hit cache, it schedules a task to refresh
+cacheWithScheduledFuture = longThinCache.forceGetWithRefreshAheadAsync(); // hit cache, it schedules a task to refresh
 cacheWithScheduledFuture.getCached(); // => 1L
 
 Optional<Future<?>> maybeFuture = cacheWithScheduledFuture.getFuture();
@@ -167,7 +167,7 @@ if (maybeFuture.isPresent()) { // If a task is scheduled, `forceGetWithRefreshAh
     maybeFuture.get().get(); // sync here (you don't have to do this)
 }
 
-cacheWithScheduledFuture = longAutoRefreshCache.forceGetWithRefreshAheadAsync(); // hit cache, it schedules a task to refresh
+cacheWithScheduledFuture = longThinCache.forceGetWithRefreshAheadAsync(); // hit cache, it schedules a task to refresh
 cacheWithScheduledFuture.getCached(); // => 2L
 
 maybeFuture = cacheWithScheduledFuture.getFuture();
@@ -175,7 +175,7 @@ if (maybeFuture.isPresent()) { // If a task is scheduled, `forceGetWithRefreshAh
     maybeFuture.get().get(); // sync here (you don't have to do this)
 }
 
-cacheWithScheduledFuture = longAutoRefreshCache.forceGetWithRefreshAheadAsync(); // hit cache, it schedules a task to refresh
+cacheWithScheduledFuture = longThinCache.forceGetWithRefreshAheadAsync(); // hit cache, it schedules a task to refresh
 cacheWithScheduledFuture.getCached(); // => 3L
 ```
 
@@ -185,7 +185,7 @@ If cache value hasn't been initialized, these methods behaves in the same as syn
 
 ### More information
 
-[![javadoc.io](https://javadocio-badges.herokuapp.com/net.moznion/auto-refresh-cache/badge.svg)](https://javadocio-badges.herokuapp.com/net.moznion/auto-refresh-cache)
+[![javadoc.io](https://javadocio-badges.herokuapp.com/net.moznion/thin-cache/badge.svg)](https://javadocio-badges.herokuapp.com/net.moznion/thin-cache)
 
 Requires
 --

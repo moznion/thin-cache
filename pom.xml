@@ -2,13 +2,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>net.moznion</groupId>
-    <artifactId>auto-refresh-cache</artifactId>
+    <artifactId>thin-cache</artifactId>
     <version>0.4.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>auto-refresh-cache</name>
+    <name>thin-cache</name>
     <description>Cached object that can be refreshed automatically when cache is expired</description>
-    <url>https://github.com/moznion/auto-refresh-cache</url>
+    <url>https://github.com/moznion/thin-cache</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -178,9 +178,9 @@
     </distributionManagement>
 
     <scm>
-        <url>https://github.com/moznion/auto-refresh-cache</url>
-        <connection>scm:git:git@github.com:moznion/auto-refresh-cache.git</connection>
-        <developerConnection>scm:git:git@github.com:moznion/auto-refresh-cache.git</developerConnection>
+        <url>https://github.com/moznion/thin-cache</url>
+        <connection>scm:git:git@github.com:moznion/thin-cache.git</connection>
+        <developerConnection>scm:git:git@github.com:moznion/thin-cache.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
 

@@ -1,4 +1,4 @@
-package net.moznion.auto_refresh_cache;
+package net.moznion.thin_cache;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -19,7 +19,7 @@ import lombok.extern.slf4j.Slf4j;
  * @param <T> Type of cache value.
  */
 @Slf4j
-public class AutoRefreshCache<T> {
+public class ThinCache<T> {
     private final long discardIntervalSec;
     private final Supplier<T> supplier;
     private final Semaphore semaphore;
@@ -36,9 +36,9 @@ public class AutoRefreshCache<T> {
      * @param supplier Supplier of cache value. This supplier is used when making a cache value and refreshing one.
      * @param useBeforeCacheOnException If true, it returns already cached value and suppresses exception when supplier raises some exception. Otherwise, it throws exception as it is.
      */
-    public AutoRefreshCache(final long discardIntervalSec,
-                            final boolean useBeforeCacheOnException,
-                            final Supplier<T> supplier) {
+    public ThinCache(final long discardIntervalSec,
+                     final boolean useBeforeCacheOnException,
+                     final Supplier<T> supplier) {
         this(null, 0, discardIntervalSec, useBeforeCacheOnException, supplier, false);
     }
 
@@ -50,20 +50,20 @@ public class AutoRefreshCache<T> {
      * @param supplier Supplier of cache value. This supplier is used when making a cache value and refreshing one.
      * @param useBeforeCacheOnException If true, it returns already cached value and suppresses exception when supplier raises some exception. Otherwise, it throws exception as it is.
      */
-    public AutoRefreshCache(final T init,
-                            final long discardIntervalSec,
-                            final boolean useBeforeCacheOnException,
-                            final Supplier<T> supplier) {
+    public ThinCache(final T init,
+                     final long discardIntervalSec,
+                     final boolean useBeforeCacheOnException,
+                     final Supplier<T> supplier) {
         this(init, getExpiresAt(discardIntervalSec), discardIntervalSec, useBeforeCacheOnException, supplier,
              true);
     }
 
-    private AutoRefreshCache(final T init,
-                             final long expiresAt,
-                             final long discardIntervalSec,
-                             final boolean useBeforeCacheOnException,
-                             final Supplier<T> supplier,
-                             final boolean isInitialized) {
+    private ThinCache(final T init,
+                      final long expiresAt,
+                      final long discardIntervalSec,
+                      final boolean useBeforeCacheOnException,
+                      final Supplier<T> supplier,
+                      final boolean isInitialized) {
         this.discardIntervalSec = discardIntervalSec;
         this.supplier = supplier;
         this.useBeforeCacheOnException = useBeforeCacheOnException;
@@ -92,7 +92,7 @@ public class AutoRefreshCache<T> {
      * To describe in other words, this method retrieves always already cached value.
      * And schedules a task to refresh cache when cache is expired.
      * <p>
-     * Exception case: If cache value has not been initialized, this method behaves in the same as {@link AutoRefreshCache#get()}
+     * Exception case: If cache value has not been initialized, this method behaves in the same as {@link ThinCache#get()}
      *
      * @return Already cached value and {@link Future} of task which is scheduled to refresh. If there is no necessary to schedule task to refresh, future will be empty.
      */
@@ -124,7 +124,7 @@ public class AutoRefreshCache<T> {
      * To describe in other words, this method retrieves always already cached value.
      * And schedules a task to refresh cache.
      * <p>
-     * Exception case: If cache value has not been initialized, this method behaves in the same as {@link AutoRefreshCache#forceGet()}
+     * Exception case: If cache value has not been initialized, this method behaves in the same as {@link ThinCache#forceGet()}
      *
      * @return Already cached value and {@link Future} of task which is scheduled to refresh. If there is no necessary to schedule task to refresh, future will be empty.
      */

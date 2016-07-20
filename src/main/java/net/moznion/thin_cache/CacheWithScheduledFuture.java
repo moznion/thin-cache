@@ -1,4 +1,4 @@
-package net.moznion.auto_refresh_cache;
+package net.moznion.thin_cache;
 
 import java.util.Optional;
 import java.util.concurrent.Future;

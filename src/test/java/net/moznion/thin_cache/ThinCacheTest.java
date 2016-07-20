@@ -1,21 +1,19 @@
-package net.moznion.auto_refresh_cache;
+package net.moznion.thin_cache;
 
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.Test;
 
-public class AutoRefreshCacheTest {
+public class ThinCacheTest {
     @Test
     public void testGet() throws Exception {
-        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(1, false, new Supplier<Long>() {
+        final ThinCache<Long> longThinCache = new ThinCache<>(1, false, new Supplier<Long>() {
             private long i = 0;
 
             @Override
@@ -23,18 +21,18 @@ public class AutoRefreshCacheTest {
                 return ++i;
             }
         });
-        assertThat(longAutoRefreshCache.get()).isEqualTo(1L);
-        assertThat(longAutoRefreshCache.get()).isEqualTo(1L);
+        assertThat(longThinCache.get()).isEqualTo(1L);
+        assertThat(longThinCache.get()).isEqualTo(1L);
 
         final CacheWithScheduledFuture<Long> cacheWithScheduledFuture =
-                longAutoRefreshCache.get(Integer.MAX_VALUE, false);
+                longThinCache.get(Integer.MAX_VALUE, false);
         assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(2L);
         assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
     }
 
     @Test
     public void testForceGet() throws Exception {
-        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(1, false, new Supplier<Long>() {
+        final ThinCache<Long> longThinCache = new ThinCache<>(1, false, new Supplier<Long>() {
             private long i = 0;
 
             @Override
@@ -42,18 +40,18 @@ public class AutoRefreshCacheTest {
                 return ++i;
             }
         });
-        assertThat(longAutoRefreshCache.get()).isEqualTo(1L);
-        assertThat(longAutoRefreshCache.forceGet()).isEqualTo(2L);
+        assertThat(longThinCache.get()).isEqualTo(1L);
+        assertThat(longThinCache.forceGet()).isEqualTo(2L);
 
         final CacheWithScheduledFuture<Long> cacheWithScheduledFuture =
-                longAutoRefreshCache.get(Integer.MAX_VALUE, false);
+                longThinCache.get(Integer.MAX_VALUE, false);
         assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(3L);
         assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
     }
 
     @Test
     public void testForAtomicity() throws Exception {
-        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
+        final ThinCache<Long> longThinCache = new ThinCache<>(10, false, new Supplier<Long>() {
             private long i = 0;
 
             @Override
@@ -68,15 +66,15 @@ public class AutoRefreshCacheTest {
         });
 
         final ExecutorService pool = Executors.newFixedThreadPool(3);
-        final Future<?> future1 = pool.submit(() -> assertThat(longAutoRefreshCache.forceGet()).isEqualTo(1L));
-        final Future<?> future2 = pool.submit(() -> assertThat(longAutoRefreshCache.forceGet()).isNull());
+        final Future<?> future1 = pool.submit(() -> assertThat(longThinCache.forceGet()).isEqualTo(1L));
+        final Future<?> future2 = pool.submit(() -> assertThat(longThinCache.forceGet()).isNull());
         final Future<?> future3 = pool.submit(() -> {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            assertThat(longAutoRefreshCache.forceGet()).isEqualTo(2L);
+            assertThat(longThinCache.forceGet()).isEqualTo(2L);
         });
         future1.get();
         future2.get();
@@ -85,18 +83,18 @@ public class AutoRefreshCacheTest {
 
     @Test
     public void testForExceptionalHandling() throws Exception {
-        final AutoRefreshCache<Long> notSuppressException = new AutoRefreshCache<>(10, false, () -> {
+        final ThinCache<Long> notSuppressException = new ThinCache<>(10, false, () -> {
             throw new RuntimeException("Exception!");
         });
         assertThatThrownBy(notSuppressException::forceGet).isInstanceOf(RuntimeException.class);
 
-        final AutoRefreshCache<Long> suppressException = new AutoRefreshCache<>(1L, 10, true, () -> {
+        final ThinCache<Long> suppressException = new ThinCache<>(1L, 10, true, () -> {
             throw new RuntimeException("Exception!");
         });
         assertThat(suppressException.forceGet()).isEqualTo(1);
         assertThat(suppressException.forceGet()).isEqualTo(1);
 
-        final AutoRefreshCache<Long> suppressExceptionWithNoInit = new AutoRefreshCache<>(10, true, () -> {
+        final ThinCache<Long> suppressExceptionWithNoInit = new ThinCache<>(10, true, () -> {
             throw new RuntimeException("Exception!");
         });
         assertThatThrownBy(suppressExceptionWithNoInit::forceGet).isInstanceOf(RuntimeException.class);
@@ -104,7 +102,7 @@ public class AutoRefreshCacheTest {
 
     @Test
     public void testWithInitialCachedObject() throws Exception {
-        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(100L, 10, false, new Supplier<Long>() {
+        final ThinCache<Long> longThinCache = new ThinCache<>(100L, 10, false, new Supplier<Long>() {
             private long i = 0;
 
             @Override
@@ -113,13 +111,13 @@ public class AutoRefreshCacheTest {
             }
         });
 
-        assertThat(longAutoRefreshCache.get()).isEqualTo(100L);
-        assertThat(longAutoRefreshCache.forceGet()).isEqualTo(1L);
+        assertThat(longThinCache.get()).isEqualTo(100L);
+        assertThat(longThinCache.forceGet()).isEqualTo(1L);
     }
 
     @Test
     public void testGetWithRefreshAheadAsync() throws Exception {
-        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
+        final ThinCache<Long> longThinCache = new ThinCache<>(10, false, new Supplier<Long>() {
             private long i = 0;
 
             @Override
@@ -130,25 +128,25 @@ public class AutoRefreshCacheTest {
 
         {
             CacheWithScheduledFuture<Long> cacheWithScheduledFuture =
-                    longAutoRefreshCache.get(Integer.MAX_VALUE, true); // generate cache synchronous
+                    longThinCache.get(Integer.MAX_VALUE, true); // generate cache synchronous
             assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(1L);
             assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
 
-            cacheWithScheduledFuture = longAutoRefreshCache.getWithRefreshAheadAsync();
+            cacheWithScheduledFuture = longThinCache.getWithRefreshAheadAsync();
             assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(1L);
             assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
 
-            cacheWithScheduledFuture = longAutoRefreshCache.forceGetWithRefreshAheadAsync();
+            cacheWithScheduledFuture = longThinCache.forceGetWithRefreshAheadAsync();
             assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(1L);
             assertThat(cacheWithScheduledFuture.getFuture()).isPresent();
             assertThat(cacheWithScheduledFuture.getFuture().get().get()).isNull();
 
-            cacheWithScheduledFuture = longAutoRefreshCache.getWithRefreshAheadAsync();
+            cacheWithScheduledFuture = longThinCache.getWithRefreshAheadAsync();
             assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(2L);
             assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
         }
 
-        final AutoRefreshCache<Long> longAutoRefreshCacheWithInit = new AutoRefreshCache<>(1L, 10, false, new Supplier<Long>() {
+        final ThinCache<Long> longThinCacheWithInit = new ThinCache<>(1L, 10, false, new Supplier<Long>() {
             private long i = 1;
 
             @Override
@@ -159,21 +157,21 @@ public class AutoRefreshCacheTest {
 
         {
             CacheWithScheduledFuture<Long> cacheWithScheduledFuture =
-                    longAutoRefreshCacheWithInit.get(Integer.MAX_VALUE, true);
+                    longThinCacheWithInit.get(Integer.MAX_VALUE, true);
             assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(1L);
             assertThat(cacheWithScheduledFuture.getFuture()).isPresent();
             assertThat(cacheWithScheduledFuture.getFuture().get().get()).isNull();
 
-            cacheWithScheduledFuture = longAutoRefreshCacheWithInit.getWithRefreshAheadAsync();
+            cacheWithScheduledFuture = longThinCacheWithInit.getWithRefreshAheadAsync();
             assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(2L);
             assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
 
-            cacheWithScheduledFuture = longAutoRefreshCacheWithInit.forceGetWithRefreshAheadAsync();
+            cacheWithScheduledFuture = longThinCacheWithInit.forceGetWithRefreshAheadAsync();
             assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(2L);
             assertThat(cacheWithScheduledFuture.getFuture()).isPresent();
             assertThat(cacheWithScheduledFuture.getFuture().get().get()).isNull();
 
-            cacheWithScheduledFuture = longAutoRefreshCacheWithInit.getWithRefreshAheadAsync();
+            cacheWithScheduledFuture = longThinCacheWithInit.getWithRefreshAheadAsync();
             assertThat(cacheWithScheduledFuture.getCached()).isEqualTo(3L);
             assertThat(cacheWithScheduledFuture.getFuture()).isEmpty();
         }
@@ -181,7 +179,7 @@ public class AutoRefreshCacheTest {
 
     @Test
     public void testSetCacheAsync() throws Exception {
-        final AutoRefreshCache<Long> longAutoRefreshCache = new AutoRefreshCache<>(10, false, new Supplier<Long>() {
+        final ThinCache<Long> longThinCache = new ThinCache<>(10, false, new Supplier<Long>() {
             private long i = 0;
 
             @Override
@@ -190,8 +188,8 @@ public class AutoRefreshCacheTest {
             }
         });
 
-        final Future<?> future = longAutoRefreshCache.setCacheAsync(100L);
+        final Future<?> future = longThinCache.setCacheAsync(100L);
         assertThat(future.get()).isEqualTo(null);
-        assertThat(longAutoRefreshCache.get()).isEqualTo(100L);
+        assertThat(longThinCache.get()).isEqualTo(100L);
     }
 }
